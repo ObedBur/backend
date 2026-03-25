@@ -1,0 +1,33 @@
+@baseUrl = http://localhost:4000/users
+
+### Get all users
+GET {{baseUrl}}
+
+### Create a user
+# @name createUser
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "email": "test2@example.com",
+  "fullName": "Test User 2",
+  "password": "hashedpassword2",
+  "phone": "987654321",
+  "role": "CLIENT",
+  "city": "Kinshasa"
+}
+
+### Find user by ID
+@userId = {{createUser.response.body.id}}
+GET {{baseUrl}}/{{userId}}
+
+### Update user
+PATCH {{baseUrl}}/{{userId}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated Name 2"
+}
+
+### Delete user (soft delete)
+DELETE {{baseUrl}}/{{userId}}

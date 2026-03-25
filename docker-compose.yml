@@ -1,0 +1,41 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis_kaskade
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kaskade-net
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis_commander_kaskade
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - kaskade-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: db_kaskade
+    environment:
+      - POSTGRES_USER=admin_kaskade
+      - POSTGRES_PASSWORD=1234567890
+      - POSTGRES_DB=kaskade_db
+    ports:
+      - "5432:5432"
+    networks:
+      - kaskade-net
+
+networks:
+  kaskade-net:
+    driver: bridge
