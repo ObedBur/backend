@@ -1,0 +1,125 @@
+# =========================================================================
+# 🛡️ KASKADE - AUTHENTICATION FLOW AUDIT (Brevo + Redis + JWT)
+# =========================================================================
+
+@apiV1 = http://localhost:4000/api/v1
+@authUrl = {{apiV1}}/auth
+@usersUrl = {{apiV1}}/users
+
+# 📝 CONFIGURATION DE TEST (Modifiez une seule fois ici)
+@email = obedburindi@gmail.com
+@password = Obed@123!
+@fullName = Obed Burindi
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 1 : INSCRIPTION (REGISTER)
+### -------------------------------------------------------------------------
+# @name registerUser
+POST {{authUrl}}/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "fullName": "{{fullName}}",
+  "password": "{{password}}",
+  "phone": "0970000000",
+  "role": "CLIENT",
+  "city": "Goma"
+}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 2 : TENTER LOGIN SANS VÉRIFICATION (ÉCHEC ATTENDU - 401/403)
+### -------------------------------------------------------------------------
+# @name loginPending
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 3 : RENVOI D'OTP (SI E-MAIL NON REÇU)
+### -------------------------------------------------------------------------
+# @name resendOtp
+POST {{authUrl}}/resend-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 4 : VÉRIFICATION OTP
+### -------------------------------------------------------------------------
+# Remplacez manuellement cette valeur après lecture de l'email Brevo
+@otpCode = 123456
+
+# @name verifyOtp
+POST {{authUrl}}/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otp": "{{otpCode}}"
+}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 5 : CONNEXION (LOGIN APRÈS ACTIVATION)
+### -------------------------------------------------------------------------
+# @name login
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 📦 EXTRACTION DES TOKENS
+@accessToken = {{login.response.body.tokens.accessToken}}
+@refreshToken = {{login.response.body.tokens.refreshToken}}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 6 : TEST DE PROTECTION (PROFIL UTILISATEUR)
+### -------------------------------------------------------------------------
+# @name getProfile
+GET {{authUrl}}/me
+Authorization: Bearer {{accessToken}}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 7 : TEST DES DROITS (GET ALL USERS - REQUIERT ROLE ADMIN)
+### -------------------------------------------------------------------------
+GET {{usersUrl}}
+Authorization: Bearer {{accessToken}}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 8 : REFRESH DES TOKENS (JWT REFRESH FLOW)
+### -------------------------------------------------------------------------
+# @name refresh
+POST {{authUrl}}/refresh
+Content-Type: application/json
+Authorization: Bearer {{refreshToken}}
+
+### RÉCUPÉRATION DU NOUVEAU ACCESS TOKEN
+@newAccessToken = {{refresh.response.body.tokens.accessToken}}
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 9 : DÉCONNEXION (LOGOUT)
+### -------------------------------------------------------------------------
+# @name logout
+POST {{authUrl}}/logout
+Authorization: Bearer {{refreshToken}}
+
+### -------------------------------------------------------------------------
+### 🛡️ TEST DE RATE LIMITING (BRUTE FORCE PROTECTION)
+### -------------------------------------------------------------------------
+# Envoyez ceci rapidement pour tester la limite (429 Too Many Requests)
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "WrongPassword123"
+}
